@@ -5,9 +5,15 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket = "aws-terraform-backend-state-nila"
+    key    = "terraform.tfstate"
+    region = "eu-central-1"
+  }
 }
 
 # Configure the AWS Provider
 provider "aws" {
-  region = "us-east-1"
+  region = "eu-central-1"
 }
