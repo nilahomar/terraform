@@ -3,5 +3,6 @@ data "terraform_remote_state" "vpc" {
   config = {
     bucket = "aws-terraform-backend-state-nila"
     key = "vpc/terraform.tfstate"
+    region = "eu-central-1"
   }
 }
