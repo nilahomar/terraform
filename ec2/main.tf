@@ -33,29 +33,56 @@ resource "aws_security_group" "web" {
 }
 
 data "aws_ami" "amazon-linux-2" {
- most_recent = true
+  most_recent = true
 
- filter {
-   name   = "owner-alias"
-   values = ["amazon"]
- }
+  filter {
+    name   = "owner-alias"
+    values = ["amazon"]
+  }
 
- filter {
-   name   = "name"
-   values = ["amzn2-ami-hvm*"]
- }
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
 }
 
 
 resource "aws_instance" "web" {
-  ami                         = data.aws_ami.amazon-linux-2.id
+  ami                         = "ami-024f768332f080c5e"
   associate_public_ip_address = true
   instance_type               = "t2.micro"
   key_name                    = "aws"
-  security_groups             = [aws_security_group.web.id]
-  subnet_id                   = "subnet-077834de25bd53801"
+  vpc_security_group_ids      = [aws_security_group.web.id]
+  subnet_id                   = "subnet-0bafbb64fbdec488a"
+  iam_instance_profile        = aws_iam_instance_profile.profile.name
 
   tags = {
     Name = "test"
   }
+}
+
+//iam role for ssm
+resource "aws_iam_instance_profile" "profile" {
+  name = "ssm-profile"
+  role = aws_iam_role.role.name
+}
+
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "role" {
+  name                = "ssm-role"
+  path                = "/"
+  assume_role_policy  = data.aws_iam_policy_document.assume_role.json
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"]
 }

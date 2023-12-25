@@ -7,39 +7,26 @@ resource "aws_vpc" "main" {
   }
 }
 
-resource "aws_subnet" "public_01" {
+resource "aws_subnet" "public" {
+  count = length(var.public_subnets)
+
   vpc_id     = aws_vpc.main.id
-  cidr_block = "192.168.0.0/18"
+  cidr_block = element(var.public_subnets, count.index)
 
   tags = {
-    Name = "public-01"
+    Name = "public-${count.index}"
   }
 }
 
-resource "aws_subnet" "public_02" {
+
+resource "aws_subnet" "private" {
+  count = length(var.private_subnets)
+
   vpc_id     = aws_vpc.main.id
-  cidr_block = "192.168.64.0/18"
+  cidr_block = element(var.private_subnets, count.index)
 
   tags = {
-    Name = "public-02"
-  }
-}
-
-resource "aws_subnet" "private_01" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "192.168.128.0/18"
-
-  tags = {
-    Name = "private-01"
-  }
-}
-
-resource "aws_subnet" "private_02" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "192.168.192.0/18"
-
-  tags = {
-    Name = "private-02"
+    Name = "private-${count.index}"
   }
 }
 
@@ -72,29 +59,32 @@ resource "aws_route_table" "private" {
     gateway_id = "local"
   }
 
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_nat_gateway.this.id
+  }
   tags = {
     Name = "private"
   }
 }
 
-resource "aws_route_table_association" "public_01" {
-  subnet_id      = aws_subnet.public_01.id
+resource "aws_route_table_association" "public" {
+  count = length(var.public_subnets)
+  subnet_id      = element(aws_subnet.public[*].id, count.index)
   route_table_id = aws_route_table.public.id
 }
 
-
-resource "aws_route_table_association" "public_02" {
-  subnet_id      = aws_subnet.public_02.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "private_01" {
-  subnet_id      = aws_subnet.private_01.id
+resource "aws_route_table_association" "private" {
+  count = length(var.private_subnets)
+  subnet_id      = element(aws_subnet.private[*].id, count.index)
   route_table_id = aws_route_table.private.id
 }
 
+resource "aws_eip" "this" {
+  domain   = "vpc"
+}
 
-resource "aws_route_table_association" "private_02" {
-  subnet_id      = aws_subnet.private_02.id
-  route_table_id = aws_route_table.private.id
+resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.this.id
+  subnet_id = aws_subnet.public[0].id
 }
